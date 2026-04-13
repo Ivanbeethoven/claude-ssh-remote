@@ -1,5 +1,5 @@
 {
-  "description": "SSH remote enforcement hooks",
+  "description": "SSH remote enforcement hooks for Codex CLI",
   "hooks": {
     "PreToolUse": [
       {
@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/claude_hook_adapter.py",
+            "command": "python3 ${CODEX_PLUGIN_ROOT}/codex/codex_hook_adapter.py",
             "timeout": 10
           }
         ]

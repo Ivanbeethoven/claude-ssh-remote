@@ -1,0 +1,22 @@
+# Codex CLI config snippet for ssh-remote
+#
+# Copy the relevant sections into your ~/.codex/config.toml
+# or into a project-local .codex/config.toml
+
+# Enable hooks (required for SSH remote enforcement)
+[features]
+codex_hooks = true
+
+# Skill registration
+# Replace /path/to/claude-ssh-remote with the actual clone path
+[[skills.config]]
+path = "/path/to/claude-ssh-remote/codex/skills/ssh-remote/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "/path/to/claude-ssh-remote/codex/skills/ssh-remote-hook-on/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "/path/to/claude-ssh-remote/codex/skills/ssh-remote-hook-off/SKILL.md"
+enabled = true

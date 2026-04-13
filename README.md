@@ -1,19 +1,21 @@
 # Claude SSH Remote
 
-A standalone Claude Code plugin repo for opening a remote development shell over SSH.
+A multi-platform plugin for opening a remote development shell over SSH.
+Works with **Claude Code**, **OpenAI Codex CLI**, and **GitHub Copilot coding agent**.
 
 ## What it provides
 
-- `/ssh-remote <ssh-host>`
-- `/ssh-remote-hook-on <ssh-host>`
-- `/ssh-remote-hook-off`
+- `/ssh-remote <ssh-host>` — connect to a remote server
+- `/ssh-remote-hook-on <ssh-host>` — enforce Bash commands through SSH
+- `/ssh-remote-hook-off` — disable enforcement
 - optional remote working directory
 - optional persistent session via `tmux`, with `screen` fallback
 - SSH host lookup via your existing `~/.ssh/config`
 - optimized for the simple case: `ssh azure`
-- optional hook mode to force Bash commands through a configured SSH host
 
-## Fastest start
+## Quick start
+
+### Claude Code
 
 ```bash
 git clone https://github.com/Ivanbeethoven/claude-ssh-remote.git
@@ -21,28 +23,55 @@ cd claude-ssh-remote
 cc --plugin-dir .
 ```
 
-Then in Claude Code:
-
 ```text
 /ssh-remote azure
 ```
+
+### OpenAI Codex CLI
+
+```bash
+git clone https://github.com/Ivanbeethoven/claude-ssh-remote.git
+# Copy skills and hooks into your Codex config
+# See codex/config-snippet.toml for details
+codex
+```
+
+### GitHub Copilot
+
+Copy `github/copilot-instructions.md` to `.github/copilot-instructions.md` in your
+project. Copy `AGENTS.md` to your repo root.
 
 ## Current layout
 
 ```text
 claude-ssh-remote/
+├── core/                           # shared enforcement logic
+│   ├── config.py
+│   └── ssh_enforce.py
 ├── .claude-plugin/
 │   └── plugin.json
-├── hooks/
+├── hooks/                          # Claude Code hooks
 │   ├── hooks.json
-│   └── ssh_enforce_hook.py
-├── skills/
-│   ├── ssh-remote/
-│   │   └── SKILL.md
-│   ├── ssh-remote-hook-on/
-│   │   └── SKILL.md
-│   └── ssh-remote-hook-off/
-│       └── SKILL.md
+│   ├── claude_hook_adapter.py
+│   └── ssh_enforce_hook.py         # deprecated, delegates to adapter
+├── skills/                         # Claude Code skills
+│   ├── ssh-remote/SKILL.md
+│   ├── ssh-remote-hook-on/SKILL.md
+│   └── ssh-remote-hook-off/SKILL.md
+├── codex/                          # Codex CLI integration
+│   ├── AGENTS.md
+│   ├── skills/
+│   │   ├── ssh-remote/SKILL.md
+│   │   ├── ssh-remote-hook-on/SKILL.md
+│   │   └── ssh-remote-hook-off/SKILL.md
+│   ├── codex_hook_adapter.py
+│   ├── hooks.json
+│   └── config-snippet.toml
+├── github/                         # GitHub Copilot integration
+│   ├── copilot-instructions.md
+│   └── instructions/
+│       └── ssh-remote.instructions.md
+├── AGENTS.md                       # shared agent instructions
 ├── INSTALL.md
 ├── README.md
 └── 使用手册.md
@@ -52,31 +81,31 @@ claude-ssh-remote/
 
 ### Connect to remote
 
-```text
-/ssh-remote azure
-```
+| Platform | Command |
+|----------|---------|
+| Claude Code | `/ssh-remote azure` |
+| Codex CLI | `$ssh-remote azure` |
+| Copilot | `ssh azure` |
 
-This is designed to map directly to:
+### Enable Bash enforcement
 
-```bash
-ssh azure
-```
+| Platform | Command | Config file |
+|----------|---------|-------------|
+| Claude Code | `/ssh-remote-hook-on azure` | `.claude/claude-ssh-remote.local.md` |
+| Codex CLI | `$ssh-remote-hook-on azure` | `.codex/ssh-remote.local.toml` |
+| Copilot | edit config manually | `.claude/claude-ssh-remote.local.md` |
 
-### Enable Bash enforcement for this project
+### Disable Bash enforcement
 
-```text
-/ssh-remote-hook-on azure
-```
-
-### Disable Bash enforcement for this project
-
-```text
-/ssh-remote-hook-off
-```
+| Platform | Command |
+|----------|---------|
+| Claude Code | `/ssh-remote-hook-off` |
+| Codex CLI | `$ssh-remote-hook-off` |
+| Copilot | edit config manually |
 
 ## Hook mode
 
-When enabled, the hook only targets Claude's `Bash` tool.
+When enabled, the hook targets the `Bash` tool.
 
 Behavior:
 
@@ -85,13 +114,13 @@ Behavior:
 - interactive or unsafe-to-proxy Bash commands are blocked and shown as a remote command suggestion instead of being auto-run
 - existing `ssh` / `scp` / `sftp` commands are left alone
 
-Project config file:
+**Note:** Copilot has no hook mechanism. Enforcement is instruction-based — the
+agent follows rules in `copilot-instructions.md` and `AGENTS.md`. This is less
+guaranteed than programmatic hooks.
 
-```text
-.claude/claude-ssh-remote.local.md
-```
+### Config file formats
 
-Example:
+Claude / Copilot (YAML frontmatter):
 
 ```markdown
 ---
@@ -101,6 +130,14 @@ mode: rewrite_or_block
 ---
 ```
 
+Codex (TOML):
+
+```toml
+enabled = true
+ssh_host = "azure"
+mode = "rewrite_or_block"
+```
+
 Supported modes:
 
 - `rewrite_or_block`: try remote execution first, otherwise block
@@ -108,15 +145,16 @@ Supported modes:
 
 ## Install
 
-See [INSTALL.md](INSTALL.md) for the shortest GitHub-based install flow.
+See [INSTALL.md](INSTALL.md) for platform-specific install flows.
 
 ## Chinese guide
 
-See [使用手册.md](使用手册.md) for Chinese instructions, including how to enable and disable the hook mode.
+See [使用手册.md](使用手册.md) for Chinese instructions for all three platforms.
 
 ## Notes
 
 - keep host, user, port, and identity settings in your SSH config
 - this plugin intentionally keeps arguments minimal and does not add explicit `user@host` or `port` flags
 - the command is designed for interactive remote development sessions, not one-off remote execution
-- the hook currently targets Claude's Bash tool, not every possible tool type
+- the hook currently targets the Bash tool, not every possible tool type
+- Copilot enforcement is instruction-only — less strict than Claude/Codex hooks
