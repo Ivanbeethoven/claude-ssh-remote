@@ -4,10 +4,28 @@ A standalone Claude Code plugin repo for opening a remote development shell over
 
 ## What it provides
 
-- `/ssh-remote <host-alias>`
+- `/ssh-remote <ssh-host>`
+- `/ssh-remote-hook-on <ssh-host>`
+- `/ssh-remote-hook-off`
 - optional remote working directory
 - optional persistent session via `tmux`, with `screen` fallback
-- host lookup via your existing `~/.ssh/config`
+- SSH host lookup via your existing `~/.ssh/config`
+- optimized for the simple case: `ssh azure`
+- optional hook mode to force Bash commands through a configured SSH host
+
+## Fastest start
+
+```bash
+git clone https://github.com/Ivanbeethoven/claude-ssh-remote.git
+cd claude-ssh-remote
+cc --plugin-dir .
+```
+
+Then in Claude Code:
+
+```text
+/ssh-remote azure
+```
 
 ## Current layout
 
@@ -15,51 +33,90 @@ A standalone Claude Code plugin repo for opening a remote development shell over
 claude-ssh-remote/
 ├── .claude-plugin/
 │   └── plugin.json
+├── hooks/
+│   ├── hooks.json
+│   └── ssh_enforce_hook.py
 ├── skills/
-│   └── ssh-remote/
+│   ├── ssh-remote/
+│   │   └── SKILL.md
+│   ├── ssh-remote-hook-on/
+│   │   └── SKILL.md
+│   └── ssh-remote-hook-off/
 │       └── SKILL.md
-└── README.md
+├── INSTALL.md
+├── README.md
+└── 使用手册.md
 ```
 
-## Usage
+## Quick usage
 
-### Host only
+### Connect to remote
 
 ```text
-/ssh-remote my-server
+/ssh-remote azure
 ```
 
-### Host + remote directory
+This is designed to map directly to:
+
+```bash
+ssh azure
+```
+
+### Enable Bash enforcement for this project
 
 ```text
-/ssh-remote my-server /srv/my-app
+/ssh-remote-hook-on azure
 ```
 
-### Host + remote directory + session name
+### Disable Bash enforcement for this project
 
 ```text
-/ssh-remote my-server /srv/my-app dev-session
+/ssh-remote-hook-off
 ```
 
-## Behavior
+## Hook mode
 
-- connects with `ssh <host-alias>`
-- if `remote-dir` is given, enters that directory first
-- if `session-name` is given, prefers `tmux`, then `screen`
-- if neither `tmux` nor `screen` exists, falls back to a normal remote shell
+When enabled, the hook only targets Claude's `Bash` tool.
+
+Behavior:
+
+- safe non-interactive Bash commands are rewritten to run through `ssh <configured-host>`
+- the original local Bash execution is blocked
+- interactive or unsafe-to-proxy Bash commands are blocked and shown as a remote command suggestion instead of being auto-run
+- existing `ssh` / `scp` / `sftp` commands are left alone
+
+Project config file:
+
+```text
+.claude/claude-ssh-remote.local.md
+```
+
+Example:
+
+```markdown
+---
+enabled: true
+ssh_host: azure
+mode: rewrite_or_block
+---
+```
+
+Supported modes:
+
+- `rewrite_or_block`: try remote execution first, otherwise block
+- `block_only`: never auto-run, only block and tell you the SSH form
+
+## Install
+
+See [INSTALL.md](INSTALL.md) for the shortest GitHub-based install flow.
+
+## Chinese guide
+
+See [使用手册.md](使用手册.md) for Chinese instructions, including how to enable and disable the hook mode.
 
 ## Notes
 
-- host aliases should be maintained in your SSH config
+- keep host, user, port, and identity settings in your SSH config
 - this plugin intentionally keeps arguments minimal and does not add explicit `user@host` or `port` flags
 - the command is designed for interactive remote development sessions, not one-off remote execution
-
-## Install / use locally
-
-Open this repo in Claude Code or place it where your Claude plugin workflow loads local plugins.
-
-If you only want the command file, the equivalent user command is the same content in:
-
-```text
-~/.claude/commands/ssh-remote.md
-```
+- the hook currently targets Claude's Bash tool, not every possible tool type
