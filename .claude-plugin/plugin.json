@@ -1,0 +1,7 @@
+{
+  "name": "claude-ssh-remote",
+  "description": "SSH into a remote development environment from Claude Code using host aliases, optional working directory, and tmux/screen sessions",
+  "author": {
+    "name": "HXY"
+  }
+}
